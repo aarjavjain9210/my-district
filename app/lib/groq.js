@@ -14,9 +14,9 @@ function buildSystemPrompt(requestBody) {
     constraints.push(`travel tolerance: ${requestBody.travelTolerance.join(', ')} (evaluate travel times accordingly)`);
   }
   
-  // User preferences and tags
+  // User preferences
   if (requestBody.extraInfo) {
-    constraints.push(`user preferences: "${requestBody.extraInfo}" (match with tags field)`);
+    constraints.push(`user preferences: "${requestBody.extraInfo}" (match against venue name, description, type, cuisines, genre, and other attributes for scoring)`);
   }
   
   // Extract filters from preferredTypes array (new structure)
@@ -80,7 +80,9 @@ function buildSystemPrompt(requestBody) {
   
   return `You are a precise itinerary scoring engine. ${constraintsText}
 
-Analyze the itinerary object and rate it from 0-100 based on the user's intent. For context, fields in the itinerary object such as distanceKm represent the distance from the previous location, and travelTimeMinutes represents the travel time from the previous location. Evaluate the entire itinerary based on all provided fields. The highlights are very important for scoring. Provide detailed reasoning for the score.
+Analyze the itinerary object and rate it from 0-100 based on the user's intent. For context, distanceKm represents the distance from the previous location, and travelTimeMinutes represents the travel time from the previous location.
+
+Each venue has: name, description, location, pricePerPerson, duration, availableTimeStart, availableTimeEnd, distanceKm, travelTimeMinutes, and amenities (wifi, washroom, wheelchair, parking, rating). Type-specific fields: dinings (type, cuisines, alcohol), movies (genre, language, format, cast), events (type, venue), activities (type, venue, intensity), plays (type, venue, intensity, cafe). Consider all venue details and type-specific fields for scoring. Provide detailed reasoning for the score.
 
 OUTPUT FORMAT:
 Return ONLY valid JSON:
