@@ -28,6 +28,7 @@ const PlaySchema = new mongoose.Schema({
   washroom: Boolean,
   banner_url: String,
   wheelchair: Boolean,
+  cafe: Boolean,
 
   // Play specific fields
   venue: [{

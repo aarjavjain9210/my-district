@@ -4,29 +4,14 @@
  */
 function buildSystemPrompt(requestBody) {
   const constraints = [];
-  
   // Core constraints
   if (requestBody.budget) {
     constraints.push(`budget (₹${requestBody.budget} for ${requestBody.numberOfPeople} people)`);
   }
-  if (requestBody.minimumRating) {
-    constraints.push(`minimum rating (${requestBody.minimumRating}+)`);
-  }
   
   // Travel and timing constraints
-  if (requestBody.travelTolerance) {
-    constraints.push(`travel time limit (max ${requestBody.travelTolerance} min per leg, check distanceKm and travelTimeMinutes)`);
-  }
-  if (requestBody.timeGapBetweenThings) {
-    constraints.push(`preferred gap between activities (${requestBody.timeGapBetweenThings} min)`);
-  }
-  
-  // Experience constraints
-  if (requestBody.crowdTolerance) {
-    constraints.push(`crowd tolerance (${requestBody.crowdTolerance})`);
-  }
-  if (requestBody.parkingAccessible) {
-    constraints.push('parking required');
+  if (requestBody.travelTolerance && Array.isArray(requestBody.travelTolerance) && requestBody.travelTolerance.length > 0) {
+    constraints.push(`travel tolerance: ${requestBody.travelTolerance.join(', ')} (evaluate travel times accordingly)`);
   }
   
   // User preferences and tags
@@ -34,12 +19,20 @@ function buildSystemPrompt(requestBody) {
     constraints.push(`user preferences: "${requestBody.extraInfo}" (match with tags field)`);
   }
   
-  // Type-specific filters
+  // Go-out specific filters
   if (requestBody.dining) {
     const filters = [];
     if (requestBody.dining.type?.length) filters.push(`type: ${requestBody.dining.type.join(',')}`);
     if (requestBody.dining.cuisines?.length) filters.push(`cuisines: ${requestBody.dining.cuisines.join(',')}`);
     if (requestBody.dining.alcohol !== undefined) filters.push(`alcohol: ${requestBody.dining.alcohol}`);
+    if (requestBody.dining.wifi !== undefined) filters.push(`wifi: ${requestBody.dining.wifi}`);
+    if (requestBody.dining.washroom !== undefined) filters.push(`washroom: ${requestBody.dining.washroom}`);
+    if (requestBody.dining.wheelchair !== undefined) filters.push(`wheelchair: ${requestBody.dining.wheelchair}`);
+    if (requestBody.dining.parking !== undefined) filters.push(`parking: ${requestBody.dining.parking}`);
+    if (requestBody.dining.rating !== undefined) filters.push(`rating: ${requestBody.dining.rating}+`);
+    if (Array.isArray(requestBody.dining.crowdTolerance) && requestBody.dining.crowdTolerance.length > 0) {
+      filters.push(`crowd tolerance: ${requestBody.dining.crowdTolerance.join(',')}`);
+    }
     if (filters.length) constraints.push(`dining (${filters.join('; ')})`);
   }
   
@@ -47,6 +40,14 @@ function buildSystemPrompt(requestBody) {
     const filters = [];
     if (requestBody.event.type?.length) filters.push(`type: ${requestBody.event.type.join(',')}`);
     if (requestBody.event.venue?.length) filters.push(`venue: ${requestBody.event.venue.join(',')}`);
+    if (requestBody.event.wifi !== undefined) filters.push(`wifi: ${requestBody.event.wifi}`);
+    if (requestBody.event.washroom !== undefined) filters.push(`washroom: ${requestBody.event.washroom}`);
+    if (requestBody.event.wheelchair !== undefined) filters.push(`wheelchair: ${requestBody.event.wheelchair}`);
+    if (requestBody.event.parking !== undefined) filters.push(`parking: ${requestBody.event.parking}`);
+    if (requestBody.event.rating !== undefined) filters.push(`rating: ${requestBody.event.rating}+`);
+    if (Array.isArray(requestBody.event.crowdTolerance) && requestBody.event.crowdTolerance.length > 0) {
+      filters.push(`crowd tolerance: ${requestBody.event.crowdTolerance.join(',')}`);
+    }
     if (filters.length) constraints.push(`event (${filters.join('; ')})`);
   }
   
@@ -54,6 +55,14 @@ function buildSystemPrompt(requestBody) {
     const filters = [];
     if (requestBody.activity.type?.length) filters.push(`type: ${requestBody.activity.type.join(',')}`);
     if (requestBody.activity.venue?.length) filters.push(`venue: ${requestBody.activity.venue.join(',')}`);
+    if (requestBody.activity.wifi !== undefined) filters.push(`wifi: ${requestBody.activity.wifi}`);
+    if (requestBody.activity.washroom !== undefined) filters.push(`washroom: ${requestBody.activity.washroom}`);
+    if (requestBody.activity.wheelchair !== undefined) filters.push(`wheelchair: ${requestBody.activity.wheelchair}`);
+    if (requestBody.activity.parking !== undefined) filters.push(`parking: ${requestBody.activity.parking}`);
+    if (requestBody.activity.rating !== undefined) filters.push(`rating: ${requestBody.activity.rating}+`);
+    if (Array.isArray(requestBody.activity.crowdTolerance) && requestBody.activity.crowdTolerance.length > 0) {
+      filters.push(`crowd tolerance: ${requestBody.activity.crowdTolerance.join(',')}`);
+    }
     if (filters.length) constraints.push(`activity (${filters.join('; ')})`);
   }
   
@@ -62,6 +71,15 @@ function buildSystemPrompt(requestBody) {
     if (requestBody.play.type?.length) filters.push(`type: ${requestBody.play.type.join(',')}`);
     if (requestBody.play.venue?.length) filters.push(`venue: ${requestBody.play.venue.join(',')}`);
     if (requestBody.play.intensity?.length) filters.push(`intensity: ${requestBody.play.intensity.join(',')}`);
+    if (requestBody.play.wifi !== undefined) filters.push(`wifi: ${requestBody.play.wifi}`);
+    if (requestBody.play.washroom !== undefined) filters.push(`washroom: ${requestBody.play.washroom}`);
+    if (requestBody.play.wheelchair !== undefined) filters.push(`wheelchair: ${requestBody.play.wheelchair}`);
+    if (requestBody.play.cafe !== undefined) filters.push(`cafe: ${requestBody.play.cafe}`);
+    if (requestBody.play.parking !== undefined) filters.push(`parking: ${requestBody.play.parking}`);
+    if (requestBody.play.rating !== undefined) filters.push(`rating: ${requestBody.play.rating}+`);
+    if (Array.isArray(requestBody.play.crowdTolerance) && requestBody.play.crowdTolerance.length > 0) {
+      filters.push(`crowd tolerance: ${requestBody.play.crowdTolerance.join(',')}`);
+    }
     if (filters.length) constraints.push(`play (${filters.join('; ')})`);
   }
   
@@ -71,6 +89,14 @@ function buildSystemPrompt(requestBody) {
     if (requestBody.movie.language?.length) filters.push(`language: ${requestBody.movie.language.join(',')}`);
     if (requestBody.movie.format?.length) filters.push(`format: ${requestBody.movie.format.join(',')}`);
     if (requestBody.movie.cast?.length) filters.push(`cast: ${requestBody.movie.cast.join(',')}`);
+    if (requestBody.movie.wifi !== undefined) filters.push(`wifi: ${requestBody.movie.wifi}`);
+    if (requestBody.movie.washroom !== undefined) filters.push(`washroom: ${requestBody.movie.washroom}`);
+    if (requestBody.movie.wheelchair !== undefined) filters.push(`wheelchair: ${requestBody.movie.wheelchair}`);
+    if (requestBody.movie.parking !== undefined) filters.push(`parking: ${requestBody.movie.parking}`);
+    if (requestBody.movie.rating !== undefined) filters.push(`rating: ${requestBody.movie.rating}+`);
+    if (Array.isArray(requestBody.movie.crowdTolerance) && requestBody.movie.crowdTolerance.length > 0) {
+      filters.push(`crowd tolerance: ${requestBody.movie.crowdTolerance.join(',')}`);
+    }
     if (filters.length) constraints.push(`movie (${filters.join('; ')})`);
   }
   

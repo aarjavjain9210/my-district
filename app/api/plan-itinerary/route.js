@@ -199,18 +199,14 @@ export async function POST(request) {
       endTime,                // Number: 24-hour format
       endLocation,            // Object: { lat, lng }
       extraInfo,              // String
-      parkingAccessible,      // Boolean
-      crowdTolerance,         // String
-      travelTolerance,        // Number
-      timeGapBetweenThings,   // Number: minutes
-      minimumRating,          // Number: e.g., 4.0
+      travelTolerance,        // [String]: Array of "low", "medium", "high"
       
-      // Type-specific filters
-      dining,                 // Object: { type: [String], cuisines: [String], alcohol: Boolean }
-      event,                  // Object: { type: [String], venue: [String] }
-      activity,               // Object: { type: [String], venue: [String] }
-      play,                   // Object: { type: [String], venue: [String], intensity: [String] }
-      movie                   // Object: { genre: [String], language: [String], format: [String], cast: [String] }
+      // Go-out specific filters
+      dining,                 // Object: { type: [String], cuisines: [String], alcohol: Boolean, wifi: Boolean, washroom: Boolean, wheelchair: Boolean, parking: Boolean, rating: Number, crowdTolerance: [String] }
+      event,                  // Object: { type: [String], venue: [String], wifi: Boolean, washroom: Boolean, wheelchair: Boolean, parking: Boolean, rating: Number, crowdTolerance: [String] }
+      activity,               // Object: { type: [String], venue: [String], wifi: Boolean, washroom: Boolean, wheelchair: Boolean, parking: Boolean, rating: Number, crowdTolerance: [String] }
+      play,                   // Object: { type: [String], venue: [String], intensity: [String], wifi: Boolean, washroom: Boolean, wheelchair: Boolean, cafe: Boolean, parking: Boolean, rating: Number, crowdTolerance: [String] }
+      movie                   // Object: { genre: [String], language: [String], format: [String], cast: [String], wifi: Boolean, washroom: Boolean, wheelchair: Boolean, parking: Boolean, rating: Number, crowdTolerance: [String] }
     } = body;
 
     // Validate only mandatory fields
@@ -234,7 +230,6 @@ export async function POST(request) {
     
     // Extract hours in 24-hour format (0-23)
     const startHour = startTime - 1; // startTime - 1 hour
-    const endHour = endTime + 1; // endTime + 1 hour
     
     const maxPrice = (budget * 1.25) / numberOfPeople;
 
@@ -243,13 +238,13 @@ export async function POST(request) {
       minPeople: { $lte: numberOfPeople },
       maxPeople: { $gte: numberOfPeople },
       pricePerPerson: { $lte: maxPrice },
-      availableTimeStart: { $lte: startHour },
-      availableTimeEnd: { $gte: endHour }
+      availableTimeStart: { $lte: startHour }
     };
 
-    // Add minimum rating if provided
-    if (minimumRating) {
-      baseQuery.rating = { $gte: minimumRating };
+    // Only add endTime filter if provided
+    if (endTime) {
+      const endHour = endTime + 1; // endTime + 1 hour
+      baseQuery.availableTimeEnd = { $gte: endHour };
     }
     
     const results = {};
@@ -268,7 +263,7 @@ export async function POST(request) {
 
       const typeQuery = { ...baseQuery };
 
-      // Apply type-specific filters - DB fields are arrays, use $in to match ANY value
+      // Apply go-out specific filters - DB fields are arrays, use $in to match ANY value
       switch (type.toLowerCase()) {
         case 'dinings':
           if (dining) {
@@ -281,6 +276,22 @@ export async function POST(request) {
             if (dining.alcohol !== undefined) {
               typeQuery.alcohol = dining.alcohol;
             }
+            // Go-out level filters
+            if (dining.wifi !== undefined) {
+              typeQuery.wifi = dining.wifi;
+            }
+            if (dining.washroom !== undefined) {
+              typeQuery.washroom = dining.washroom;
+            }
+            if (dining.wheelchair !== undefined) {
+              typeQuery.wheelchair = dining.wheelchair;
+            }
+            if (dining.parking !== undefined) {
+              typeQuery.parking = dining.parking;
+            }
+            if (dining.rating !== undefined) {
+              typeQuery.rating = { $gte: dining.rating };
+            }
           }
           break;
 
@@ -292,6 +303,22 @@ export async function POST(request) {
             if (Array.isArray(event.venue) && event.venue.length > 0) {
               typeQuery.venue = { $in: event.venue };
             }
+            // Go-out level filters
+            if (event.wifi !== undefined) {
+              typeQuery.wifi = event.wifi;
+            }
+            if (event.washroom !== undefined) {
+              typeQuery.washroom = event.washroom;
+            }
+            if (event.wheelchair !== undefined) {
+              typeQuery.wheelchair = event.wheelchair;
+            }
+            if (event.parking !== undefined) {
+              typeQuery.parking = event.parking;
+            }
+            if (event.rating !== undefined) {
+              typeQuery.rating = { $gte: event.rating };
+            }
           }
           break;
 
@@ -302,6 +329,22 @@ export async function POST(request) {
             }
             if (Array.isArray(activity.venue) && activity.venue.length > 0) {
               typeQuery.venue = { $in: activity.venue };
+            }
+            // Go-out level filters
+            if (activity.wifi !== undefined) {
+              typeQuery.wifi = activity.wifi;
+            }
+            if (activity.washroom !== undefined) {
+              typeQuery.washroom = activity.washroom;
+            }
+            if (activity.wheelchair !== undefined) {
+              typeQuery.wheelchair = activity.wheelchair;
+            }
+            if (activity.parking !== undefined) {
+              typeQuery.parking = activity.parking;
+            }
+            if (activity.rating !== undefined) {
+              typeQuery.rating = { $gte: activity.rating };
             }
           }
           break;
@@ -316,6 +359,25 @@ export async function POST(request) {
             }
             if (Array.isArray(play.intensity) && play.intensity.length > 0) {
               typeQuery.intensity = { $in: play.intensity };
+            }
+            // Go-out level filters
+            if (play.wifi !== undefined) {
+              typeQuery.wifi = play.wifi;
+            }
+            if (play.washroom !== undefined) {
+              typeQuery.washroom = play.washroom;
+            }
+            if (play.wheelchair !== undefined) {
+              typeQuery.wheelchair = play.wheelchair;
+            }
+            if (play.cafe !== undefined) {
+              typeQuery.cafe = play.cafe;
+            }
+            if (play.parking !== undefined) {
+              typeQuery.parking = play.parking;
+            }
+            if (play.rating !== undefined) {
+              typeQuery.rating = { $gte: play.rating };
             }
           }
           break;
@@ -333,6 +395,22 @@ export async function POST(request) {
             }
             if (Array.isArray(movie.cast) && movie.cast.length > 0) {
               typeQuery.cast = { $in: movie.cast };
+            }
+            // Go-out level filters
+            if (movie.wifi !== undefined) {
+              typeQuery.wifi = movie.wifi;
+            }
+            if (movie.washroom !== undefined) {
+              typeQuery.washroom = movie.washroom;
+            }
+            if (movie.wheelchair !== undefined) {
+              typeQuery.wheelchair = movie.wheelchair;
+            }
+            if (movie.parking !== undefined) {
+              typeQuery.parking = movie.parking;
+            }
+            if (movie.rating !== undefined) {
+              typeQuery.rating = { $gte: movie.rating };
             }
           }
           break;
