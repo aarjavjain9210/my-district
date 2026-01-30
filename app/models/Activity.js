@@ -20,6 +20,13 @@ const ActivitySchema = new mongoose.Schema({
   availableTimeStart: Number,
   availableTimeEnd: Number,
 
+  // Venue amenities
+  address: String,
+  wifi: Boolean,
+  washroom: Boolean,
+  banner_url: String,
+  wheelchair: Boolean,
+
   // Activity specific fields
   venue: [{
     type: String,

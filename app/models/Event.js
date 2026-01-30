@@ -20,6 +20,13 @@ const EventSchema = new mongoose.Schema({
   availableTimeStart: Number,
   availableTimeEnd: Number,
 
+  // Venue amenities
+  address: String,
+  wifi: Boolean,
+  washroom: Boolean,
+  banner_url: String,
+  wheelchair: Boolean,
+
   // Event specific fields
   type: [{
     type: String,

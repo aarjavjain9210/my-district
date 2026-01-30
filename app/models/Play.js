@@ -20,6 +20,13 @@ const PlaySchema = new mongoose.Schema({
   availableTimeStart: Number,
   availableTimeEnd: Number,
 
+  // Venue amenities
+  address: String,
+  wifi: Boolean,
+  washroom: Boolean,
+  banner_url: String,
+  wheelchair: Boolean,
+
   // Play specific fields
   venue: [{
     type: String,

@@ -9,8 +9,18 @@ if (!cached) {
 }
 
 export async function connectMongo() {
-  if (cached.conn) return cached.conn;
+  if (cached.conn) {
+    console.log("✅ Using cached MongoDB connection");
+    return cached.conn;
+  }
 
-  cached.conn = await mongoose.connect(MONGO_URI);
-  return cached.conn;
+  try {
+    console.log("🔄 Connecting to MongoDB...");
+    cached.conn = await mongoose.connect(MONGO_URI);
+    console.log("✅ MongoDB connected successfully");
+    return cached.conn;
+  } catch (error) {
+    console.error("❌ MongoDB connection error:", error.message);
+    throw error;
+  }
 }

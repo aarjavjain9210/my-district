@@ -20,10 +20,17 @@ const DiningSchema = new mongoose.Schema({
   availableTimeStart: Number,
   availableTimeEnd: Number,
 
+  // Venue amenities
+  address: String,
+  wifi: Boolean,
+  washroom: Boolean,
+  banner_url: String,
+  wheelchair: Boolean,
+
   // Dining specific fields
   type: [{
     type: String,
-    enum: ["veg", "non-veg", "both"]
+    enum: ["veg", "non-veg"]
   }],
   cuisines: [String],
   alcohol: Boolean,
