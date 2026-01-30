@@ -42,13 +42,13 @@ export default function BasicInfoStep({ formData, onNext }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Basic Information</h2>
+        <h2 className="text-2xl font-extrabold text-yellow-300 mb-6">Basic Information</h2>
         
         {/* Mandatory Fields */}
         <div className="space-y-4">
           {/* Start Time */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-yellow-300 mb-2">
               Start Time <span className="text-red-500">*</span>
             </label>
             <input
@@ -58,7 +58,7 @@ export default function BasicInfoStep({ formData, onNext }) {
               placeholder="18 (6 PM in 24-hour format)"
               value={localData.startTime}
               onChange={(e) => setLocalData(prev => ({ ...prev, startTime: e.target.value }))}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 ${
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-purple-300 font-semibold ${
                 errors.startTime ? 'border-red-500' : 'border-gray-300'
               }`}
             />
@@ -67,7 +67,7 @@ export default function BasicInfoStep({ formData, onNext }) {
 
           {/* Budget */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-yellow-300 mb-2">
               Total Budget (₹) <span className="text-red-500">*</span>
             </label>
             <input
@@ -76,7 +76,7 @@ export default function BasicInfoStep({ formData, onNext }) {
               placeholder="5000"
               value={localData.budget}
               onChange={(e) => setLocalData(prev => ({ ...prev, budget: e.target.value }))}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 ${
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-purple-300 font-semibold ${
                 errors.budget ? 'border-red-500' : 'border-gray-300'
               }`}
             />
@@ -85,7 +85,7 @@ export default function BasicInfoStep({ formData, onNext }) {
 
           {/* Number of People */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-yellow-300 mb-2">
               Number of People <span className="text-red-500">*</span>
             </label>
             <input
@@ -94,7 +94,7 @@ export default function BasicInfoStep({ formData, onNext }) {
               placeholder="2"
               value={localData.numberOfPeople}
               onChange={(e) => setLocalData(prev => ({ ...prev, numberOfPeople: e.target.value }))}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 ${
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-purple-300 font-semibold ${
                 errors.numberOfPeople ? 'border-red-500' : 'border-gray-300'
               }`}
             />
@@ -103,7 +103,7 @@ export default function BasicInfoStep({ formData, onNext }) {
 
           {/* Start Location */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-yellow-300 mb-2">
               Start Location <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-2 gap-3">
@@ -116,7 +116,7 @@ export default function BasicInfoStep({ formData, onNext }) {
                   ...prev,
                   startLocation: { ...prev.startLocation, lat: e.target.value }
                 }))}
-                className={`px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 ${
+                className={`px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-purple-300 font-semibold ${
                   errors.startLocation ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -129,7 +129,7 @@ export default function BasicInfoStep({ formData, onNext }) {
                   ...prev,
                   startLocation: { ...prev.startLocation, lng: e.target.value }
                 }))}
-                className={`px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 ${
+                className={`px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-purple-300 font-semibold ${
                   errors.startLocation ? 'border-red-500' : 'border-gray-300'
                 }`}
               />

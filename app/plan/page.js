@@ -89,16 +89,25 @@ export default function PlanItinerary() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-black via-purple-900 to-purple-700 py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Plan Your Perfect Day
-          </h1>
-          <p className="text-gray-600">
-            Create a personalized itinerary tailored to your preferences
-          </p>
+        {/* Hero - Basic Information in District style */}
+        <div className="mb-8">
+          <div className="rounded-2xl overflow-hidden shadow-lg">
+            <div className="bg-gradient-to-br from-purple-700 to-purple-500 text-white p-10 md:p-14 flex flex-col items-center">
+              <div className="mb-4">
+                <svg width="200" height="72" viewBox="0 0 440 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                  <rect width="440" height="160" rx="20" fill="transparent" />
+                  <text x="50%" y="45%" dominantBaseline="middle" textAnchor="middle" fill="#FFF" fontFamily="Helvetica, Arial, sans-serif" fontWeight="800" fontSize="56">district</text>
+                  <text x="50%" y="78%" dominantBaseline="middle" textAnchor="middle" fill="#F3E8FF" fontFamily="Helvetica, Arial, sans-serif" fontSize="14">BY ZOMATO</text>
+                </svg>
+              </div>
+                {/* Subtitle only */}
+                <p className="text-md md:text-lg text-purple-100 text-center max-w-2xl">
+                  Enter your starting details and preferences to generate a great day out — dining, movies, activities and events.
+                </p>
+            </div>
+          </div>
         </div>
 
         {/* Progress Indicator */}
@@ -119,7 +128,7 @@ export default function PlanItinerary() {
         </div>
 
         {/* Form Steps */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-gradient-to-br from-gray-800 to-black rounded-2xl shadow-xl p-8 form-purple">
           {step === 1 && (
             <BasicInfoStep
               formData={formData}

@@ -24,3 +24,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Form inputs inside .form-purple should display purple text to match District theme */
+.form-purple input,
+.form-purple textarea,
+.form-purple select {
+  color: #a78bfa; /* tailwind purple-400 */
+  caret-color: #a78bfa;
+  background-color: transparent;
+}
+
+.form-purple input::placeholder,
+.form-purple textarea::placeholder {
+  color: rgba(167,139,250,0.6);
+}
