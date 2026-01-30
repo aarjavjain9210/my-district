@@ -618,6 +618,7 @@ export default function EditableItinerary({
                 totalDistance={totalDistance.toFixed(1)}
                 totalTime={formatTime(totalHours)}
                 activityCount={modifiedItinerary.length}
+                numPeople={originalData?.numPeople || 1}
               />
             </div>
           );

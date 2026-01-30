@@ -45,7 +45,6 @@ const MovieSchema = new mongoose.Schema({
       "Horror",
       "Mystery",
       "Psychological Thriller",
-      "Romance",
       "Sci-Fi",
       "Sport",
       "Thriller",
@@ -54,7 +53,7 @@ const MovieSchema = new mongoose.Schema({
   }],
   language: [{
     type: String,
-    enum: ["Hindi", "English", "Malayalam", "Bengali"]
+    enum: ["Hindi", "English"]
   }],
   format: [{
     type: String,

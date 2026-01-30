@@ -36,7 +36,7 @@ const Polyline = dynamic(
   { ssr: false }
 );
 
-export default function RouteMap({ locations, apiKey, planNumber, totalPlans, score, goOutsCount, budget, totalDistance, totalTime, activityCount = 1 }) {
+export default function RouteMap({ locations, apiKey, planNumber, totalPlans, score, goOutsCount, budget, totalDistance, totalTime, activityCount = 1, numPeople = 1 }) {
   const [isClient, setIsClient] = useState(false);
   const [L, setL] = useState(null);
   const [routeData, setRouteData] = useState(null);
@@ -247,7 +247,7 @@ export default function RouteMap({ locations, apiKey, planNumber, totalPlans, sc
               {budget !== undefined && (
                 <div className="flex items-center gap-1">
                   <span>₹</span>
-                  <span className="font-semibold">{budget}</span>
+                  <span className="font-semibold">{budget * numPeople}</span>
                 </div>
               )}
               {totalDistance !== undefined && (

@@ -109,12 +109,15 @@ export default function GoOutTypesStep({ formData, onBack, onSubmit, setFormData
             </button>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {GO_OUT_TYPES.map((type) => (
+          <div className="flex flex-wrap justify-center gap-3">
+            {GO_OUT_TYPES.map((type, idx) => (
               <button
                 key={type.id}
                 onClick={() => addGoOutType(type.id)}
-                className="p-4 border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 rounded-lg transition-all text-center"
+                className={`p-4 border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 rounded-lg transition-all text-center ${
+                  idx < 3 ? 'w-[calc(33.333%-0.5rem)]' : 'w-[calc(33.333%-0.5rem)] md:w-auto'
+                }`}
+                style={idx >= 3 ? { minWidth: 'calc(33.333% - 0.5rem)' } : {}}
               >
                 <div className="text-3xl mb-2">{type.icon}</div>
                 <div className="font-medium text-gray-900">{type.name}</div>

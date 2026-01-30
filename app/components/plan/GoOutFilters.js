@@ -7,7 +7,7 @@ import { ChevronDown, ChevronUp, Search, Loader2, MapPin } from 'lucide-react';
 const FILTER_OPTIONS = {
   dinings: {
     type: ['veg', 'non-veg'],
-    cuisines: ['Italian', 'Chinese', 'Indian', 'Mexican', 'Thai', 'Japanese', 'Continental', 'French', 'Korean', 'Mediterranean']
+    cuisines: ['Italian', 'Chinese', 'North Indian', 'Mexican', 'Thai', 'Japanese', 'Continental', 'French', 'Korean', 'Mediterranean']
   },
   events: {
     type: [
@@ -81,7 +81,7 @@ const FILTER_OPTIONS = {
       "Fantasy", "Historical", "Horror", "Mystery", "Psychological Thriller",
       "Romance", "Sci-Fi", "Sport", "Thriller", "War"
     ],
-    language: ['Hindi', 'English', 'Malayalam', 'Bengali'],
+    language: ['Hindi', 'English'],
     format: ['2D', '3D', '4DX-3D', 'IMAX 2D', '4DX-2D', 'ICE 2D'],
     cast: ['Shah Rukh Khan', 'Alia Bhatt', 'Ranbir Kapoor', 'Deepika Padukone', 'Rajkummar Rao', 'Ayushmann Khurrana', 'Vicky Kaushal', 'Katrina Kaif']
   }

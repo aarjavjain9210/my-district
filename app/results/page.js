@@ -11,11 +11,20 @@ export default function ResultsPage() {
   const [totalCombinations, setTotalCombinations] = useState(0);
   const [originalRequestData, setOriginalRequestData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
   
   // Get current day of the week
   const getDayOfWeek = () => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     return days[new Date().getDay()];
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % itineraries.length);
+  };
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev - 1 + itineraries.length) % itineraries.length);
   };
 
   useEffect(() => {
@@ -126,18 +135,53 @@ export default function ResultsPage() {
             </a>
         </div>
 
-        {/* Itineraries List */}
-        <div className="space-y-6">
-          {itineraries.map((item, index) => (
-            <EditableItinerary
-              key={index}
-              itinerary={item}
-              index={index}
-              totalItineraries={itineraries.length}
-              originalData={originalRequestData}
-              onRegenerate={handleRegenerate}
-            />
-          ))}
+        {/* Itinerary Carousel */}
+        <div className="relative">
+          {/* Navigation Buttons */}
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={handlePrev}
+              disabled={itineraries.length <= 1}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Previous
+            </button>
+            
+            
+            <button
+              onClick={handleNext}
+              disabled={itineraries.length <= 1}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Current Itinerary with Animation */}
+          <div className="overflow-hidden">
+            <div
+              className="transition-transform duration-500 ease-in-out"
+              style={{ transform: `translateX(-${currentIndex * 100}%)`, display: 'flex' }}
+            >
+              {itineraries.map((item, index) => (
+                <div key={index} className="w-full flex-shrink-0">
+                  <EditableItinerary
+                    itinerary={item}
+                    index={index}
+                    totalItineraries={itineraries.length}
+                    originalData={originalRequestData}
+                    onRegenerate={handleRegenerate}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
