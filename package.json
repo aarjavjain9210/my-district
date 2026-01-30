@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "leaflet": "^1.9.4",
+    "lucide-react": "^0.563.0",
     "mongoose": "^9.1.5",
     "next": "16.1.5",
     "react": "19.2.3",

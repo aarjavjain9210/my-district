@@ -99,43 +99,15 @@ async function enrichItinerariesWithTravel(itineraries, startLocation, startTime
 }
 
 /**
- * Generate all possible itinerary combinations respecting preferredTypes order
- * @param {Array<Object>} preferredTypes - Array of type objects with specific objects or {}
- * @param {Object} results - Object with arrays of items for each type
+ * Generate all possible itinerary combinations respecting order
+ * @param {Array<Object>} results - Array of {type, items, filters?} in order
  * @param {number} budget - Maximum budget allowed
  * @param {number} numberOfPeople - Number of people
- * @param {number} startTime - Start time in hours (24-hour format)
  * @returns {Array<Object>} Array of valid itinerary combinations with cost and time info
  */
-function generateItineraries(preferredTypes, results, budget, numberOfPeople, startTime) {
-  if (!preferredTypes || preferredTypes.length === 0) {
-    return [];
-  }
-
-  // Parse preferredTypes to get items for each position with their types
-  const positions = preferredTypes.map(item => {
-    const [type, value] = Object.entries(item)[0];
-    
-    // Check if value is an empty object or has no keys
-    const isEmpty = Object.keys(value).length === 0;
-    
-    if (isEmpty) {
-      // Use all results for this type
-      return {
-        type,
-        items: results[type] || []
-      };
-    } else {
-      // Use the specific object provided
-      return {
-        type,
-        items: [value]
-      };
-    }
-  });
-
+function generateItineraries(results, budget, numberOfPeople) {
   // Filter out positions with no items
-  const validPositions = positions.filter(pos => pos.items.length > 0);
+  const validPositions = results.filter(pos => pos.items && pos.items.length > 0);
   
   if (validPositions.length === 0) {
     return [];
@@ -217,20 +189,10 @@ export async function POST(request) {
       );
     }
 
-    // Extract unique types (all types from preferredTypes, whether empty object or specific)
-    let uniqueTypes = [];
-    if (Array.isArray(preferredTypes)) {
-      const allTypes = preferredTypes
-        .filter(item => typeof item === 'object' && item !== null)
-        .map(item => Object.keys(item)[0])
-        .filter(type => type); // Remove any undefined/null
-      
-      uniqueTypes = [...new Set(allTypes)];
-    }
+    console.log('📥 Received preferredTypes:', JSON.stringify(preferredTypes, null, 2));
     
     // Extract hours in 24-hour format (0-23)
     const startHour = startTime - 1; // startTime - 1 hour
-    
     const maxPrice = (budget * 1.25) / numberOfPeople;
 
     // Base query for all types
@@ -247,7 +209,6 @@ export async function POST(request) {
       baseQuery.availableTimeEnd = { $gte: endHour };
     }
     
-    const results = {};
     const modelMap = {
       dinings: Dining,
       events: Event,
@@ -256,171 +217,137 @@ export async function POST(request) {
       plays: Play
     };
 
-    // Query each type with specific filters
-    for (const type of uniqueTypes) {
-      const model = modelMap[type.toLowerCase()];
-      if (!model) continue;
+    // Build results array by looping through preferredTypes in order
+    const results = [];
+    
+    for (const item of preferredTypes) {
+      const typeName = Object.keys(item)[0]; // e.g., "dinings", "movies"
+      const value = item[typeName];
+      
+      console.log(`Processing ${typeName}:`, JSON.stringify(value, null, 2));
+      
+      // Check if this is a specific venue (has _id) or needs filtering
+      if (value._id) {
+        // Specific venue provided - use it directly as a single-item array
+        console.log(`  → Using specific venue for ${typeName}`);
+        results.push({
+          type: typeName,
+          items: [value]
+        });
+      } else if (value.filters !== undefined || Object.keys(value).length === 0) {
+        // Has filters object OR is empty object (for backwards compatibility) - query the database
+        const model = modelMap[typeName.toLowerCase()];
+        if (!model) {
+          results.push({ type: typeName, items: [] });
+          continue;
+        }
 
-      const typeQuery = { ...baseQuery };
+        const typeQuery = { ...baseQuery };
+        // Handle both { filters: {} } and {} (backwards compatibility)
+        const filters = value.filters !== undefined ? value.filters : value;
+        console.log(`  → Applying filters:`, JSON.stringify(filters, null, 2));
 
-      // Apply go-out specific filters - DB fields are arrays, use $in to match ANY value
-      switch (type.toLowerCase()) {
-        case 'dinings':
-          if (dining) {
-            if (Array.isArray(dining.type) && dining.type.length > 0) {
-              typeQuery.type = { $in: dining.type };
+        // Apply type-specific filters based on the go-out type
+        switch (typeName.toLowerCase()) {
+          case 'dinings':
+            if (Array.isArray(filters.type) && filters.type.length > 0) {
+              typeQuery.type = { $in: filters.type };
             }
-            if (Array.isArray(dining.cuisines) && dining.cuisines.length > 0) {
-              typeQuery.cuisines = { $in: dining.cuisines };
+            if (Array.isArray(filters.cuisines) && filters.cuisines.length > 0) {
+              typeQuery.cuisines = { $in: filters.cuisines };
             }
-            if (dining.alcohol !== undefined) {
-              typeQuery.alcohol = dining.alcohol;
+            if (filters.alcohol !== undefined) {
+              typeQuery.alcohol = filters.alcohol;
             }
-            // Go-out level filters
-            if (dining.wifi !== undefined) {
-              typeQuery.wifi = dining.wifi;
-            }
-            if (dining.washroom !== undefined) {
-              typeQuery.washroom = dining.washroom;
-            }
-            if (dining.wheelchair !== undefined) {
-              typeQuery.wheelchair = dining.wheelchair;
-            }
-            if (dining.parking !== undefined) {
-              typeQuery.parking = dining.parking;
-            }
-            if (dining.rating !== undefined) {
-              typeQuery.rating = { $gte: dining.rating };
-            }
-          }
-          break;
+            break;
 
-        case 'events':
-          if (event) {
-            if (Array.isArray(event.type) && event.type.length > 0) {
-              typeQuery.type = { $in: event.type };
+          case 'events':
+            if (Array.isArray(filters.type) && filters.type.length > 0) {
+              typeQuery.type = { $in: filters.type };
             }
-            if (Array.isArray(event.venue) && event.venue.length > 0) {
-              typeQuery.venue = { $in: event.venue };
+            if (Array.isArray(filters.venue) && filters.venue.length > 0) {
+              typeQuery.venue = { $in: filters.venue };
             }
-            // Go-out level filters
-            if (event.wifi !== undefined) {
-              typeQuery.wifi = event.wifi;
-            }
-            if (event.washroom !== undefined) {
-              typeQuery.washroom = event.washroom;
-            }
-            if (event.wheelchair !== undefined) {
-              typeQuery.wheelchair = event.wheelchair;
-            }
-            if (event.parking !== undefined) {
-              typeQuery.parking = event.parking;
-            }
-            if (event.rating !== undefined) {
-              typeQuery.rating = { $gte: event.rating };
-            }
-          }
-          break;
+            break;
 
-        case 'activities':
-          if (activity) {
-            if (Array.isArray(activity.type) && activity.type.length > 0) {
-              typeQuery.type = { $in: activity.type };
+          case 'activities':
+            if (Array.isArray(filters.type) && filters.type.length > 0) {
+              typeQuery.type = { $in: filters.type };
             }
-            if (Array.isArray(activity.venue) && activity.venue.length > 0) {
-              typeQuery.venue = { $in: activity.venue };
+            if (Array.isArray(filters.venue) && filters.venue.length > 0) {
+              typeQuery.venue = { $in: filters.venue };
             }
-            // Go-out level filters
-            if (activity.wifi !== undefined) {
-              typeQuery.wifi = activity.wifi;
+            if (Array.isArray(filters.intensity) && filters.intensity.length > 0) {
+              typeQuery.intensity = { $in: filters.intensity };
             }
-            if (activity.washroom !== undefined) {
-              typeQuery.washroom = activity.washroom;
-            }
-            if (activity.wheelchair !== undefined) {
-              typeQuery.wheelchair = activity.wheelchair;
-            }
-            if (activity.parking !== undefined) {
-              typeQuery.parking = activity.parking;
-            }
-            if (activity.rating !== undefined) {
-              typeQuery.rating = { $gte: activity.rating };
-            }
-          }
-          break;
+            break;
 
-        case 'plays':
-          if (play) {
-            if (Array.isArray(play.type) && play.type.length > 0) {
-              typeQuery.type = { $in: play.type };
+          case 'plays':
+            if (Array.isArray(filters.type) && filters.type.length > 0) {
+              typeQuery.type = { $in: filters.type };
             }
-            if (Array.isArray(play.venue) && play.venue.length > 0) {
-              typeQuery.venue = { $in: play.venue };
+            if (Array.isArray(filters.venue) && filters.venue.length > 0) {
+              typeQuery.venue = { $in: filters.venue };
             }
-            if (Array.isArray(play.intensity) && play.intensity.length > 0) {
-              typeQuery.intensity = { $in: play.intensity };
+            if (Array.isArray(filters.intensity) && filters.intensity.length > 0) {
+              typeQuery.intensity = { $in: filters.intensity };
             }
-            // Go-out level filters
-            if (play.wifi !== undefined) {
-              typeQuery.wifi = play.wifi;
+            if (filters.cafe !== undefined) {
+              typeQuery.cafe = filters.cafe;
             }
-            if (play.washroom !== undefined) {
-              typeQuery.washroom = play.washroom;
-            }
-            if (play.wheelchair !== undefined) {
-              typeQuery.wheelchair = play.wheelchair;
-            }
-            if (play.cafe !== undefined) {
-              typeQuery.cafe = play.cafe;
-            }
-            if (play.parking !== undefined) {
-              typeQuery.parking = play.parking;
-            }
-            if (play.rating !== undefined) {
-              typeQuery.rating = { $gte: play.rating };
-            }
-          }
-          break;
+            break;
 
-        case 'movies':
-          if (movie) {
-            if (Array.isArray(movie.genre) && movie.genre.length > 0) {
-              typeQuery.genre = { $in: movie.genre };
+          case 'movies':
+            if (Array.isArray(filters.genre) && filters.genre.length > 0) {
+              typeQuery.genre = { $in: filters.genre };
             }
-            if (Array.isArray(movie.language) && movie.language.length > 0) {
-              typeQuery.language = { $in: movie.language };
+            if (Array.isArray(filters.language) && filters.language.length > 0) {
+              typeQuery.language = { $in: filters.language };
             }
-            if (Array.isArray(movie.format) && movie.format.length > 0) {
-              typeQuery.format = { $in: movie.format };
+            if (Array.isArray(filters.format) && filters.format.length > 0) {
+              typeQuery.format = { $in: filters.format };
             }
-            if (Array.isArray(movie.cast) && movie.cast.length > 0) {
-              typeQuery.cast = { $in: movie.cast };
+            if (Array.isArray(filters.cast) && filters.cast.length > 0) {
+              typeQuery.cast = { $in: filters.cast };
             }
-            // Go-out level filters
-            if (movie.wifi !== undefined) {
-              typeQuery.wifi = movie.wifi;
-            }
-            if (movie.washroom !== undefined) {
-              typeQuery.washroom = movie.washroom;
-            }
-            if (movie.wheelchair !== undefined) {
-              typeQuery.wheelchair = movie.wheelchair;
-            }
-            if (movie.parking !== undefined) {
-              typeQuery.parking = movie.parking;
-            }
-            if (movie.rating !== undefined) {
-              typeQuery.rating = { $gte: movie.rating };
-            }
-          }
-          break;
+            break;
+        }
+
+        // Apply common amenity filters
+        if (filters.wifi !== undefined) {
+          typeQuery.wifi = filters.wifi;
+        }
+        if (filters.washroom !== undefined) {
+          typeQuery.washroom = filters.washroom;
+        }
+        if (filters.wheelchair !== undefined) {
+          typeQuery.wheelchair = filters.wheelchair;
+        }
+        if (filters.parking !== undefined) {
+          typeQuery.parking = filters.parking;
+        }
+        if (filters.rating !== undefined) {
+          typeQuery.rating = { $gte: filters.rating };
+        }
+
+        const queryResults = await model.find(typeQuery).limit(50).lean();
+        console.log(`  → Query returned ${queryResults.length} results for ${typeName}`);
+        results.push({
+          type: typeName,
+          items: queryResults,
+          filters: filters // Store filters for AI scoring
+        });
+      } else {
+        // Empty object or invalid - skip
+        console.log(`  → Skipping ${typeName} (no filters or _id)`);
+        results.push({ type: typeName, items: [] });
       }
-
-      results[type] = await model.find(typeQuery).limit(50).lean();
     }
 
+    console.log('📊 Final results summary:', results.map(r => `${r.type}: ${r.items.length} items`).join(', '));
+
     // Generate all possible itinerary combinations with budget and time constraints
-    const itineraries = generateItineraries(preferredTypes, results, budget, numberOfPeople, startTime);
+    const itineraries = generateItineraries(results, budget, numberOfPeople);
 
     // Enrich itineraries with travel distance and time (validates time constraints)
     const validItineraries = await enrichItinerariesWithTravel(itineraries, startLocation, startTime, process.env.OPENROUTE_API_KEY);
@@ -428,13 +355,13 @@ export async function POST(request) {
     // Score itineraries using AI (batchSize=1 processes one at a time)
     const scoredItineraries = await scoreItineraries(validItineraries, body, 1);
     
-    // Extract just the scores array (already sorted highest to lowest)
-    const scores = scoredItineraries.map(item => item.score);
+    // Get top 4 itineraries (already sorted highest to lowest by scoreItineraries)
+    const top4 = scoredItineraries.slice(0, 4);
 
     return NextResponse.json({
       success: true,
-      scores: scores,
-      totalCombinations: scores.length
+      itineraries: top4,
+      totalCombinations: scoredItineraries.length
     }, { status: 200 });
 
   } catch (error) {
