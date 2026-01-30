@@ -89,3 +89,48 @@ export async function getDistance(start, end, apiKey) {
     durationMinutes: Math.ceil(result.durations[0][0] / 60)
   };
 }
+
+/**
+ * Get full route with geometry for map visualization (supports multiple waypoints)
+ * @param {Array<Object>} locations - Array of locations [{ lng, lat }, { lng, lat }, ...]
+ * @param {string} apiKey - OpenRouteService API key
+ * @returns {Promise<Object>} Full route GeoJSON with geometry, steps, and summary
+ */
+export async function getRouteGeometry(locations, apiKey) {
+  try {
+    // Convert locations to coordinates array
+    const coordinates = locations.map(loc => [loc.lng, loc.lat]);
+    
+    const url = `https://api.openrouteservice.org/v2/directions/driving-car/geojson`;
+    
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Accept": "application/json, application/geo+json",
+        "Authorization": apiKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        coordinates: coordinates
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenRouteService API error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    
+    return {
+      success: true,
+      route: data
+    };
+    
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
