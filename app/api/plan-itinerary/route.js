@@ -366,6 +366,15 @@ export async function POST(request) {
     // Enrich itineraries with travel distance and time (validates time constraints)
     const validItineraries = await enrichItinerariesWithTravel(itineraries, startLocation, startTime, process.env.OPENROUTE_API_KEY);
 
+    // Check if no valid itineraries after time validation
+    if (validItineraries.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No new permutations available',
+        noNewPermutations: true
+      }, { status: 200 });
+    }
+
     // Score itineraries using AI (batchSize=1 processes one at a time)
     const scoredItineraries = await scoreItineraries(validItineraries, body, 1);
     

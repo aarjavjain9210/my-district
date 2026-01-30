@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Loader2, MapPin } from 'lucide-react';
 
 const FILTER_OPTIONS = {
   dinings: {
@@ -94,8 +94,34 @@ export default function GoOutFilters({ type, filters, onUpdate }) {
   const [showFilters, setShowFilters] = useState(false);
   const [localFilters, setLocalFilters] = useState(filters?.filters || {});
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const options = FILTER_OPTIONS[type] || {};
+
+  // Debounced search for venues
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const response = await fetch(`/api/search-venues?q=${encodeURIComponent(searchQuery)}&type=${type}&limit=10`);
+        const data = await response.json();
+        if (data.venues) {
+          setSearchResults(data.venues);
+        }
+      } catch (error) {
+        console.error('Venue search error:', error);
+      }
+      setSearchLoading(false);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, type]);
 
   // Check if this is a specific venue object (has _id)
   const hasSpecificVenue = filters && filters._id;
@@ -112,22 +138,10 @@ export default function GoOutFilters({ type, filters, onUpdate }) {
     setLocalFilters({});
   };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      // Create a mock venue object for demonstration
-      // In production, this would search a database
-      const mockVenue = {
-        _id: "mock-id-" + Date.now(),
-        name: searchQuery,
-        location: { lat: 28.7041, lng: 77.1025 },
-        rating: 4.5,
-        pricePerPerson: 500,
-        address: "Example Address, Delhi"
-      };
-      onUpdate(mockVenue); // Send venue object directly (not wrapped)
-      setSearchQuery('');
-    }
+  const handleVenueSelect = (venue) => {
+    onUpdate(venue); // Send venue object directly (not wrapped)
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
   // If a specific venue is selected, show only venue info, no filters
@@ -190,16 +204,46 @@ export default function GoOutFilters({ type, filters, onUpdate }) {
   return (
     <div className="space-y-3">
       {/* Search for specific venue */}
-      <form onSubmit={handleSearchSubmit} className="relative">
-        <input
-          type="text"
-          placeholder={`Search for a specific ${type.slice(0, -1)}...`}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
-        />
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-      </form>
+      <div className="relative">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder={`Search for a specific ${type.slice(0, -1)}...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+          />
+          {searchLoading && (
+            <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />
+          )}
+        </div>
+
+        {/* Autocomplete dropdown */}
+        {searchResults.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {searchResults.map((venue, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => handleVenueSelect(venue)}
+                className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-start gap-2 border-b last:border-b-0"
+              >
+                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-gray-900">{venue.name}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {venue.rating && `⭐ ${venue.rating}`} {venue.pricePerPerson && `• ₹${venue.pricePerPerson}/person`}
+                  </div>
+                  {venue.address && (
+                    <div className="text-xs text-gray-400 mt-1">{venue.address}</div>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="text-center text-sm text-gray-500">OR</div>
 

@@ -30,7 +30,17 @@ export default function MapDemo() {
         ))}
       </div>
 
-      <RouteMap locations={locations} apiKey={apiKey} />
+      <RouteMap
+        locations={locations}
+        apiKey={apiKey}
+        planNumber={undefined}
+        totalPlans={undefined}
+        score={undefined}
+        goOutsCount={undefined}
+        budget={undefined}
+        totalDistance={undefined}
+        totalTime={undefined}
+      />
       
       <div className="mt-6 p-4 bg-blue-50 rounded-lg">
         <h2 className="text-xl font-semibold mb-2">Features:</h2>

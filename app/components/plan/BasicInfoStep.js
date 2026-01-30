@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, MapPin, Navigation, Search, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, MapPin, LocateFixed, Search, Loader2 } from 'lucide-react';
 
 export default function BasicInfoStep({ formData, onNext }) {
   const [localData, setLocalData] = useState(formData);
@@ -329,12 +329,22 @@ export default function BasicInfoStep({ formData, onNext }) {
                     placeholder="Search for a location (e.g., Juhu Beach, Mumbai)"
                     value={startLocationQuery}
                     onChange={(e) => setStartLocationQuery(e.target.value)}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 ${
+                    className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 ${
                       errors.startLocation ? 'border-red-500' : 'border-gray-300'
                     }`}
                   />
-                  {startLocationLoading && (
+                  {/* Current Location Icon or Loading Spinner */}
+                  {loadingCurrentLocation ? (
                     <Loader2 className="absolute right-3 top-3.5 w-5 h-5 text-gray-400 animate-spin" />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleUseCurrentLocation}
+                      className="absolute right-3 top-3.5 text-blue-600 hover:text-blue-700 transition-colors"
+                      title="Use current location"
+                    >
+                      <LocateFixed className="w-5 h-5" />
+                    </button>
                   )}
                 </div>
 
@@ -360,42 +370,22 @@ export default function BasicInfoStep({ formData, onNext }) {
               </div>
             )}
 
-            {/* Use Current Location button */}
-            {!selectedStartLocation && (
-              <button
-                type="button"
-                onClick={handleUseCurrentLocation}
-                disabled={loadingCurrentLocation}
-                className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loadingCurrentLocation ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm font-medium">Getting location...</span>
-                  </>
-                ) : (
-                  <>
-                    <Navigation className="w-4 h-4" />
-                    <span className="text-sm font-medium">Use Current Location</span>
-                  </>
-                )}
-              </button>
-            )}
-
             {errors.startLocation && <p className="text-red-500 text-sm mt-1">{errors.startLocation}</p>}
           </div>
         </div>
 
         {/* Configure More Dropdown */}
         <div className="mt-6">
-          <button
-            type="button"
-            onClick={() => setShowOptional(!showOptional)}
-            className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <span className="font-medium text-gray-700">Configure More Options</span>
-            {showOptional ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-          </button>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowOptional(!showOptional)}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-purple-600 transition-colors"
+            >
+              <span className="text-sm font-medium">Configure More Options</span>
+              {showOptional ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
 
           {showOptional && (
             <div className="mt-4 space-y-4 p-4 bg-gray-50 rounded-lg">
@@ -454,10 +444,20 @@ export default function BasicInfoStep({ formData, onNext }) {
                         placeholder="Search for end location (optional)"
                         value={endLocationQuery}
                         onChange={(e) => setEndLocationQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+                        className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
                       />
-                      {endLocationLoading && (
+                      {/* Current Location Icon or Loading Spinner */}
+                      {loadingEndCurrentLocation ? (
                         <Loader2 className="absolute right-3 top-3.5 w-5 h-5 text-gray-400 animate-spin" />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleUseEndCurrentLocation}
+                          className="absolute right-3 top-3.5 text-blue-600 hover:text-blue-700 transition-colors"
+                          title="Use current location"
+                        >
+                          <LocateFixed className="w-5 h-5" />
+                        </button>
                       )}
                     </div>
 
@@ -481,28 +481,6 @@ export default function BasicInfoStep({ formData, onNext }) {
                       </div>
                     )}
                   </div>
-                )}
-
-                {/* Use Current Location button for end location */}
-                {!selectedEndLocation && (
-                  <button
-                    type="button"
-                    onClick={handleUseEndCurrentLocation}
-                    disabled={loadingEndCurrentLocation}
-                    className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loadingEndCurrentLocation ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span className="text-sm font-medium">Getting location...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Navigation className="w-4 h-4" />
-                        <span className="text-sm font-medium">Use Current Location</span>
-                      </>
-                    )}
-                  </button>
                 )}
               </div>
 

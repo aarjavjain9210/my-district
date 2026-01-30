@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, X, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import GoOutFilters from './GoOutFilters';
 
 const GO_OUT_TYPES = [
@@ -13,7 +13,7 @@ const GO_OUT_TYPES = [
   { id: 'plays', name: 'Play', icon: '⚽' }
 ];
 
-export default function GoOutTypesStep({ formData, onBack, onSubmit, setFormData }) {
+export default function GoOutTypesStep({ formData, onBack, onSubmit, setFormData, isGenerating }) {
   const [selectedTypes, setSelectedTypes] = useState(formData.preferredTypes || []);
   const [showAddCard, setShowAddCard] = useState(false);
 
@@ -134,10 +134,17 @@ export default function GoOutTypesStep({ formData, onBack, onSubmit, setFormData
         </button>
         <button
           onClick={handleSubmit}
-          disabled={selectedTypes.length === 0}
-          className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-4 px-6 rounded-lg transition-colors shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={selectedTypes.length === 0 || isGenerating}
+          className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-4 px-6 rounded-lg transition-colors shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          Generate Itinerary
+          {isGenerating ? (
+            <>
+              <RefreshCw className="w-5 h-5 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            'Generate Itinerary'
+          )}
         </button>
       </div>
     </div>

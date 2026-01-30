@@ -1,9 +1,11 @@
 
+
 'use client';
 
-import { useState, useEffect } from 'react';
-import { MapPin, Clock, IndianRupee, Star, Navigation, Plus, Trash2, RefreshCw, Edit2, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MapPin, Clock, IndianRupee, Star, Navigation, Plus, Trash2, RefreshCw, Edit2, X, ArrowRight, Car, Home } from 'lucide-react';
 import GoOutFilters from '../plan/GoOutFilters';
+import RouteMap from '../RouteMap';
 
 const GO_OUT_TYPES = [
   { id: 'dinings', name: 'Dining', icon: '🍽️' },
@@ -119,122 +121,134 @@ export default function EditableItinerary({
     });
 
     if (hasInvalidItems) {
-      alert('Please ensure all activities have filters configured or remove them before regenerating');
+      alert('Please complete all activity selections before regenerating');
       return;
     }
 
-    // Check if ALL items are specific venues (have _id)
-    const allSpecificVenues = modifiedItinerary.every(item => {
+    // Check if all items are specific venues (all have _id)
+    const allSpecific = modifiedItinerary.every(item => {
       const typeName = Object.keys(item)[0];
       const value = item[typeName];
       return value._id !== undefined;
     });
 
-    if (allSpecificVenues) {
-      alert('Cannot regenerate - all activities are specific venues. Please add filters or remove venues to allow regeneration.');
-      return;
-    }
-
-    if (!originalData) {
-      alert('Missing original request data. Please plan a new itinerary.');
+    if (allSpecific) {
+      alert('Cannot regenerate: All activities are specific venues. Please add at least one activity with filters to allow variation.');
       return;
     }
 
     setIsRegenerating(true);
-    
-    // Convert modified itinerary back to preferredTypes format
-    const preferredTypes = modifiedItinerary.map(item => item);
 
-    // Prepare the payload with all required fields from original request
     const payload = {
       ...originalData,
-      preferredTypes
+      preferredTypes: modifiedItinerary
     };
 
-    console.log('🔄 Regenerating with payload:', JSON.stringify(payload, null, 2));
-
-    await onRegenerate(payload, index);
+    const result = await onRegenerate(payload, index);
+    
+    // Check if no new permutations are available
+    if (result && result.noNewPermutations) {
+      alert('No new permutations available');
+    }
+    
     setIsRegenerating(false);
   };
 
-  const showingEditor = editingIndex !== null || isAdding;
-
-  // Calculate total distance
-  const totalDistance = modifiedItinerary.reduce((sum, activity) => {
-    const typeName = Object.keys(activity)[0];
-    const venue = activity[typeName];
-    return sum + (venue.distanceKm || 0);
-  }, 0);
-
-  // Calculate total time (travel + duration)
-  const totalMinutes = modifiedItinerary.reduce((sum, activity) => {
-    const typeName = Object.keys(activity)[0];
-    const venue = activity[typeName];
-    const travelTime = venue.travelTimeMinutes || 0;
-    const duration = venue.duration || 0;
-    return sum + travelTime + duration;
-  }, 0);
-
-  // Calculate total budget per person
+  // Calculate totals
   const totalBudget = modifiedItinerary.reduce((sum, activity) => {
     const typeName = Object.keys(activity)[0];
     const venue = activity[typeName];
     return sum + (venue.pricePerPerson || 0);
   }, 0);
 
-  // Convert minutes to hours, rounded up to nearest 0.5
-  const totalHours = Math.ceil((totalMinutes / 60) * 2) / 2;
+  const totalDistance = modifiedItinerary.reduce((sum, activity) => {
+    const typeName = Object.keys(activity)[0];
+    const venue = activity[typeName];
+    return sum + (venue.distanceKm || 0);
+  }, 0);
+
+  const totalHours = modifiedItinerary.reduce((sum, activity) => {
+    const typeName = Object.keys(activity)[0];
+    const venue = activity[typeName];
+    const durationHours = (venue.duration || 0) / 60;
+    const travelHours = (venue.travelTimeMinutes || 0) / 60;
+    return sum + durationHours + travelHours;
+  }, 0);
+
   const formatTime = (hours) => {
-    if (hours === Math.floor(hours)) {
-      return `${Math.floor(hours)} hours`;
-    } else {
-      return `${hours} hours`;
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    return m > 0 ? `${h} hours ${m} mins` : `${h} hours`;
+  };
+
+  // Calculate timeline with times
+  // Each activity's travelTimeMinutes is the travel time from previous location to this activity
+  const calculateTime = (index) => {
+    let currentTime = originalData?.startTime || 18; // Start time
+    
+    // Add up all the time spent before reaching this activity
+    for (let i = 0; i < index; i++) {
+      const activity = modifiedItinerary[i];
+      const typeName = Object.keys(activity)[0];
+      const venue = activity[typeName];
+      
+      // Add travel time to reach activity i
+      if (venue.travelTimeMinutes) {
+        currentTime += venue.travelTimeMinutes / 60;
+      }
+      
+      // Add duration spent at activity i
+      if (venue.duration) {
+        currentTime += venue.duration / 60;
+      }
     }
+    
+    // Finally add travel time to reach the current activity
+    if (modifiedItinerary[index]) {
+      const currentActivity = modifiedItinerary[index];
+      const currentTypeName = Object.keys(currentActivity)[0];
+      const currentVenue = currentActivity[currentTypeName];
+      if (currentVenue.travelTimeMinutes) {
+        currentTime += currentVenue.travelTimeMinutes / 60;
+      }
+    }
+    
+    const hours = Math.floor(currentTime);
+    const minutes = Math.round((currentTime - hours) * 60);
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   };
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-xl p-6">
-      {/* Header with Score */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-700">
-        <div>
-          <h2 className="text-2xl font-bold text-white">
-            Option {index + 1} of {totalItineraries}
-          </h2>
-          <p className="text-sm text-purple-400 mt-1">
-            {modifiedItinerary.length} activities planned
-          </p>
-        </div>
-        
-        <div className="flex gap-8 items-center">
-          <div className="flex gap-6 text-sm">
-            <div className="text-center">
-              <p className="text-gray-400">Total Budget</p>
-              <p className="text-white font-semibold">₹{totalBudget}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-gray-400">Total Distance</p>
-              <p className="text-white font-semibold">{totalDistance.toFixed(1)} km</p>
-            </div>
-            <div className="text-center">
-              <p className="text-gray-400">Total Time</p>
-              <p className="text-white font-semibold">{formatTime(totalHours)}</p>
-            </div>
-          </div>
-          
-          <div className="text-right">
-            <div className="flex items-center gap-2 text-3xl font-bold text-purple-500">
-              <Star className="w-8 h-8 fill-current" />
-              {itinerary.score}
-            </div>
-            <p className="text-xs text-gray-400 mt-1">Match Score</p>
-          </div>
-        </div>
-      </div>
+      {/* Two Column Layout: Itinerary List (Left) + Map (Right) */}
+      <div className="flex gap-6">
+        {/* Left Column: Itinerary Timeline */}
+        <div className="flex-1 space-y-3 relative">
+        {/* Continuous vertical purple line from home to last activity - Centered */}
+        {modifiedItinerary.length > 0 && (
+          <div
+            className="absolute left-1/2 transform -translate-x-1/2 w-0.5 bg-purple-500 z-0"
+            style={{
+              top: '48px', // Start from bottom of home icon
+              bottom: '120px' // Stop before the add/regenerate buttons section
+            }}
+          ></div>
+        )}
 
-      {/* Itinerary Timeline */}
-      <div className="space-y-4 relative">
-        {/* Vertical line connecting activities */}
-        <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-gradient-to-b from-purple-500 to-purple-700"></div>
+        {/* Starting Point - Home - Centered */}
+        <div className="flex flex-col items-center relative mb-6 z-10">
+          <div className="w-12 h-12 rounded-full bg-purple-600 border-4 border-gray-900 flex items-center justify-center mb-2">
+            <Home className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-xs font-bold text-purple-400">
+            {(() => {
+              const startTime = originalData?.startTime || 18;
+              const hours = Math.floor(startTime);
+              const minutes = Math.round((startTime - hours) * 60);
+              return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            })()}
+          </span>
+        </div>
         
         {modifiedItinerary.map((activity, actIndex) => {
           const typeName = Object.keys(activity)[0];
@@ -243,9 +257,8 @@ export default function EditableItinerary({
 
           if (isEditing) {
             return (
-              <div key={actIndex} className="p-4 bg-yellow-900 border-2 border-yellow-600 rounded-lg">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-semibold text-white">Replace Activity {actIndex + 1}</h4>
+              <div key={actIndex} className="p-4 bg-yellow-900 border-2 border-yellow-600 rounded-lg relative z-10 mx-auto max-w-4xl">
+                <div className="flex justify-end mb-4">
                   <button
                     onClick={handleCancelEdit}
                     className="text-gray-300 hover:text-gray-100"
@@ -256,13 +269,15 @@ export default function EditableItinerary({
 
                 {!selectedType ? (
                   <div>
-                    <p className="text-sm text-gray-200 mb-3">Select go-out type:</p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {GO_OUT_TYPES.map((type) => (
+                    <div className="flex flex-wrap justify-center gap-3">
+                      {GO_OUT_TYPES.map((type, idx) => (
                         <button
                           key={type.id}
                           onClick={() => handleTypeSelect(type.id)}
-                          className="p-3 border-2 border-gray-600 hover:border-purple-500 hover:bg-purple-900 bg-gray-800 rounded-lg transition-all text-center"
+                          className={`p-3 border-2 border-gray-600 hover:border-purple-500 hover:bg-purple-900 bg-gray-800 rounded-lg transition-all text-center ${
+                            idx < 3 ? 'w-[calc(33.333%-0.5rem)]' : 'w-[calc(33.333%-0.5rem)] md:w-auto'
+                          }`}
+                          style={idx >= 3 ? { minWidth: 'calc(33.333% - 0.5rem)' } : {}}
                         >
                           <div className="text-2xl mb-1">{type.icon}</div>
                           <div className="font-medium text-white text-sm">{type.name}</div>
@@ -303,108 +318,177 @@ export default function EditableItinerary({
             );
           }
 
+          // Check if any previous activity has only filters (no specific venue)
+          const hasIncompleteActivityBefore = modifiedItinerary.slice(0, actIndex).some(item => {
+            const itemTypeName = Object.keys(item)[0];
+            const itemVenue = item[itemTypeName];
+            return !itemVenue.name; // No name means it's just filters
+          });
+
+          // Check if current activity has only filters
+          const isIncompleteActivity = !venue.name;
+
           return (
-            <div
-              key={actIndex}
-              className="flex flex-col gap-4 p-4 bg-gray-800 border border-gray-700 rounded-lg hover:border-purple-500 transition-colors relative"
-            >
-              {/* Main Content Row: Step Number, Venue Details, and Action Buttons */}
-              <div className="flex gap-4 items-start">
-                {/* Step Number with purple indicator */}
+            <React.Fragment key={actIndex}>
+            {/* Travel Info BEFORE this activity - Centered */}
+            {/* Only show if this activity has a venue AND no incomplete activities before it */}
+            {venue.distanceKm !== undefined && venue.name && !hasIncompleteActivityBefore && (
+              <div className="flex justify-center py-3 relative z-10">
+                <div className="bg-gray-900 border border-purple-500/30 rounded-lg px-3 py-1.5 flex items-center gap-2">
+                  <Car className="w-4 h-4 text-purple-400" />
+                  {venue.distanceKm !== undefined && (
+                    <span className="text-gray-300 text-xs">{venue.distanceKm} km</span>
+                  )}
+                  {venue.travelTimeMinutes !== undefined && (
+                    <span className="text-gray-300 text-xs">{venue.travelTimeMinutes} min</span>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <div className="flex flex-col items-center relative z-10">
+              {/* Activity Card */}
+              <div
+                className="w-full max-w-4xl flex gap-4 bg-gray-800 border border-gray-700 rounded-lg hover:border-purple-500 transition-colors relative overflow-hidden p-4"
+              >
+              {/* Left Column: Banner Image */}
+              {venue.banner_url && (
                 <div className="flex-shrink-0">
-                  <div className="w-12 h-12 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold text-lg relative z-10 border-2 border-purple-600">
-                    {actIndex + 1}
+                  <div className="w-48 h-[250px] rounded-lg overflow-hidden">
+                    <img
+                      src={venue.banner_url}
+                      alt={venue.name || 'Venue banner'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
                   </div>
                 </div>
+              )}
 
-                {/* Venue Details */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">{getTypeIcon(typeName)}</span>
-                    <h3 className="text-lg font-semibold text-white">
-                      {venue.name || GO_OUT_TYPES.find(t => t.id === typeName)?.name || typeName}
-                    </h3>
-                    {venue.rating && (
-                      <div className="flex items-center gap-1 text-yellow-400">
-                        <Star className="w-4 h-4 fill-current" />
-                        <span className="font-medium text-sm">{venue.rating}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Venue Info Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                    {venue.pricePerPerson && (
-                      <div className="flex items-center gap-1 text-gray-300">
-                        <IndianRupee className="w-4 h-4" />
-                        <span>₹{venue.pricePerPerson}/person</span>
-                      </div>
-                    )}
-                    
-                    {venue.duration && (
-                      <div className="flex items-center gap-1 text-gray-300">
-                        <Clock className="w-4 h-4" />
-                        <span>{venue.duration} mins duration</span>
-                      </div>
-                    )}
-
-                    {venue.distanceKm !== undefined && (
-                      <div className="flex items-center gap-1 text-gray-300">
-                        <Navigation className="w-4 h-4" />
-                        <span>
-                          {venue.distanceKm} km {actIndex === 0 ? 'from start' : 'from prev'}
+              {/* Right Section: All Venue Info */}
+              <div className="flex-1 flex flex-col gap-2">
+                {/* Top Row: Time Badge/Activity Type (Left) + Action Buttons (Right) */}
+                <div className="flex items-center">
+                  {/* Time Badge (if specific venue) OR Activity Type Name (if just filters) */}
+                  <div className="flex-1">
+                    {venue.name && !hasIncompleteActivityBefore ? (
+                      <div className="px-3 py-1 bg-purple-600 rounded-full inline-block">
+                        <span className="text-xs font-bold text-white">
+                          {calculateTime(actIndex)}
                         </span>
                       </div>
-                    )}
-
-                    {venue.travelTimeMinutes !== undefined && (
-                      <div className="flex items-center gap-1 text-gray-300">
-                        <Clock className="w-4 h-4" />
-                        <span>{venue.travelTimeMinutes} min travel</span>
-                      </div>
-                    )}
+                    ) : !venue.name ? (
+                      <h3 className="text-lg font-semibold text-white">
+                        {GO_OUT_TYPES.find(t => t.id === typeName)?.name || typeName}
+                      </h3>
+                    ) : null}
+                  </div>
+                  
+                  {/* Action Buttons - Always on right */}
+                  <div className="flex gap-2 ml-auto">
+                    <button
+                      onClick={() => handleReplace(actIndex)}
+                      className="w-9 h-9 flex items-center justify-center bg-gray-700 text-purple-400 rounded-full hover:bg-purple-600 hover:text-white transition-colors flex-shrink-0"
+                      title="Replace"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleRemove(actIndex)}
+                      className="w-9 h-9 flex items-center justify-center bg-gray-700 text-gray-300 rounded-full hover:bg-red-600 hover:text-white transition-colors flex-shrink-0"
+                      title="Remove"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
-                {/* Action Buttons on Right */}
-                <div className="flex gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => handleReplace(actIndex)}
-                    className="px-4 py-1.5 text-sm bg-transparent border-2 border-purple-600 text-purple-400 rounded-full hover:bg-purple-600 hover:text-white transition-colors font-medium whitespace-nowrap"
-                  >
-                    REPLACE
-                  </button>
-                  <button
-                    onClick={() => handleRemove(actIndex)}
-                    className="w-8 h-8 flex items-center justify-center bg-gray-700 text-gray-300 rounded-full hover:bg-red-600 hover:text-white transition-colors flex-shrink-0"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                {/* Venue Name - Only show if we have a specific venue */}
+                {venue.name && (
+                  <h3 className="text-lg font-semibold text-white">
+                    {venue.name}
+                  </h3>
+                )}
+
+                {/* Description */}
+                {venue.description && (
+                  <p className="text-sm text-gray-400 line-clamp-2">
+                    {venue.description}
+                  </p>
+                )}
+
+                {/* Price, Duration, and Rating Row - Above Divider */}
+                <div className="flex items-center gap-4 text-sm mt-[50px]">
+                  {venue.pricePerPerson && (
+                    <div className="flex items-center gap-1 text-gray-300">
+                      <IndianRupee className="w-4 h-4" />
+                      <span className="font-semibold">{venue.pricePerPerson}/person</span>
+                    </div>
+                  )}
+                  
+                  {venue.duration && (
+                    <div className="flex items-center gap-1 text-gray-300">
+                      <Clock className="w-4 h-4" />
+                      <span className="font-semibold">{venue.duration} mins</span>
+                    </div>
+                  )}
+
+                  {/* Rating */}
+                  {venue.rating && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-gray-700 rounded-lg">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <span className="font-semibold text-white text-sm">{venue.rating}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom Row: Amenities + View on District - Below Divider */}
+                <div className="flex items-center justify-between gap-3 mt-auto pt-2 border-t border-gray-700">
+                  {/* Amenities (True Values like WiFi, Parking, etc.) - Show 3 random */}
+                  <div className="flex gap-2">
+                    {(() => {
+                      const amenities = [];
+                      if (venue.wifi) amenities.push('WiFi');
+                      if (venue.washroom) amenities.push('Washroom');
+                      if (venue.wheelchair) amenities.push('Wheelchair');
+                      if (venue.parking) amenities.push('Parking');
+                      if (venue.cafe) amenities.push('Cafe');
+                      
+                      // Shuffle array and take first 3
+                      const shuffled = amenities.sort(() => Math.random() - 0.5);
+                      
+                      return shuffled.slice(0, 3).map((amenity, idx) => (
+                        <span key={idx} className="text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded-full">
+                          {amenity}
+                        </span>
+                      ));
+                    })()}
+                  </div>
+
+                  {/* View on District Link */}
+                  {venue.district_url && (
+                    <button
+                      onClick={() => window.open(venue.district_url, '_blank')}
+                      className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors font-medium whitespace-nowrap"
+                    >
+                      View on District
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               </div>
-
-              {/* Bottom Row: View Details Button */}
-              <div className="flex">
-                <button
-                  onClick={() => {
-                    const venueName = venue.name || GO_OUT_TYPES.find(t => t.id === typeName)?.name || typeName;
-                    const googleMapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(venueName)}`;
-                    window.open(googleMapsUrl, '_blank');
-                  }}
-                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                >
-                  View Details
-                </button>
-              </div>
             </div>
+            </div>
+          </React.Fragment>
           );
         })}
-
-        {/* Add New Activity Card */}
-        {isAdding && (
-          <div className="p-4 bg-green-900 border-2 border-green-600 rounded-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-semibold text-white">Add New Activity</h4>
+  
+          {/* Add New Activity Card */}
+          {isAdding && (
+          <div className="p-4 bg-green-900 border-2 border-green-600 rounded-lg relative z-10 mx-auto max-w-4xl">
+            <div className="flex justify-end mb-4">
               <button
                 onClick={handleCancelEdit}
                 className="text-gray-300 hover:text-gray-100"
@@ -415,13 +499,15 @@ export default function EditableItinerary({
 
             {!selectedType ? (
               <div>
-                <p className="text-sm text-gray-200 mb-3">Select go-out type:</p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {GO_OUT_TYPES.map((type) => (
+                <div className="flex flex-wrap justify-center gap-3">
+                  {GO_OUT_TYPES.map((type, idx) => (
                     <button
                       key={type.id}
                       onClick={() => handleTypeSelect(type.id)}
-                      className="p-3 border-2 border-gray-600 hover:border-purple-500 hover:bg-purple-900 bg-gray-800 rounded-lg transition-all text-center"
+                      className={`p-3 border-2 border-gray-600 hover:border-purple-500 hover:bg-purple-900 bg-gray-800 rounded-lg transition-all text-center ${
+                        idx < 3 ? 'w-[calc(33.333%-0.5rem)]' : 'w-[calc(33.333%-0.5rem)] md:w-auto'
+                      }`}
+                      style={idx >= 3 ? { minWidth: 'calc(33.333% - 0.5rem)' } : {}}
                     >
                       <div className="text-2xl mb-1">{type.icon}</div>
                       <div className="font-medium text-white text-sm">{type.name}</div>
@@ -460,38 +546,114 @@ export default function EditableItinerary({
             )}
           </div>
         )}
+        </div>
+
+        {/* Right Column: Map (Sticky) */}
+        {(() => {
+          // Build locations array from start location + all venues that have coordinates
+          const locations = [];
+          
+          // Add start location if available (handle different formats)
+          if (originalData?.startLocation) {
+            const startLoc = originalData.startLocation;
+            let lng, lat;
+            
+            // Handle coordinates array format
+            if (startLoc.coordinates && Array.isArray(startLoc.coordinates)) {
+              lng = startLoc.coordinates[0];
+              lat = startLoc.coordinates[1];
+            }
+            // Handle lat/lng object format
+            else if (startLoc.lng !== undefined && startLoc.lat !== undefined) {
+              lng = startLoc.lng;
+              lat = startLoc.lat;
+            }
+            // Handle location.lat/lng format
+            else if (startLoc.location?.lng !== undefined && startLoc.location?.lat !== undefined) {
+              lng = startLoc.location.lng;
+              lat = startLoc.location.lat;
+            }
+            
+            if (lng !== undefined && lat !== undefined) {
+              locations.push({
+                lng: lng,
+                lat: lat,
+                name: "🏠 Start Location"
+              });
+            }
+          }
+
+          // Add all venue locations that have lat/lng
+          modifiedItinerary.forEach((activity, idx) => {
+            const typeName = Object.keys(activity)[0];
+            const venue = activity[typeName];
+            
+            // Use venue.location.lat and venue.location.lng
+            if (venue.name && venue.location?.lat && venue.location?.lng) {
+              locations.push({
+                lng: venue.location.lng,
+                lat: venue.location.lat,
+                name: `${getTypeIcon(typeName)} ${venue.name}`
+              });
+            }
+          });
+
+          // Only show map if we have at least 2 locations
+          if (locations.length < 2) {
+            return null;
+          }
+
+          const apiKey = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImZjMDM0Yjc3M2QxZDQ1MzVhMzUzMjhmMzcwYWUyZmEzIiwiaCI6Im11cm11cjY0In0=';
+
+          return (
+            <div className="w-[500px] flex-shrink-0">
+              <RouteMap
+                locations={locations}
+                apiKey={apiKey}
+                planNumber={index + 1}
+                totalPlans={totalItineraries}
+                score={itinerary.score}
+                goOutsCount={modifiedItinerary.length}
+                budget={totalBudget}
+                totalDistance={totalDistance.toFixed(1)}
+                totalTime={formatTime(totalHours)}
+                activityCount={modifiedItinerary.length}
+              />
+            </div>
+          );
+        })()}
       </div>
 
-      {/* Add & Regenerate Buttons */}
-      {!showingEditor && (
-        <div className="flex gap-3 mt-6 pt-6 border-t border-gray-700">
-          <button
-            onClick={handleAdd}
-            className="flex items-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            Add Activity
-          </button>
-          <button
-            onClick={handleRegenerate}
-            disabled={isRegenerating}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors"
-          >
-            <RefreshCw className={`w-5 h-5 ${isRegenerating ? 'animate-spin' : ''}`} />
-            {isRegenerating ? 'Regenerating...' : 'Regenerate Itinerary'}
-          </button>
-        </div>
-      )}
-
-      {/* AI Reasoning */}
-      {itinerary.reasoning && (
-        <div className="mt-6 pt-6 border-t border-gray-700">
-          <h4 className="font-semibold text-white mb-2">Why this itinerary?</h4>
-          <p className="text-sm text-gray-300 leading-relaxed">
-            {itinerary.reasoning}
-          </p>
-        </div>
-      )}
+      {/* Bottom Section: Add & Regenerate Buttons - Centered */}
+      <div className="flex justify-center gap-4 mt-6 pt-6 border-t border-gray-700">
+        <button
+          onClick={handleAdd}
+          disabled={isAdding || editingIndex !== null}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Plus className="w-5 h-5" />
+          Add Activity
+        </button>
+        
+        <button
+          onClick={handleRegenerate}
+          disabled={isRegenerating || isAdding || editingIndex !== null}
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isRegenerating ? (
+            <>
+              <RefreshCw className="w-5 h-5 animate-spin" />
+              Regenerating...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="w-5 h-5" />
+              Regenerate Itinerary
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
+

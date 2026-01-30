@@ -36,7 +36,7 @@ const Polyline = dynamic(
   { ssr: false }
 );
 
-export default function RouteMap({ locations, apiKey }) {
+export default function RouteMap({ locations, apiKey, planNumber, totalPlans, score, goOutsCount, budget, totalDistance, totalTime, activityCount = 1 }) {
   const [isClient, setIsClient] = useState(false);
   const [L, setL] = useState(null);
   const [routeData, setRouteData] = useState(null);
@@ -95,7 +95,7 @@ export default function RouteMap({ locations, apiKey }) {
 
   if (!isClient || !L) {
     return (
-      <div className="w-full h-[500px] bg-gray-200 flex items-center justify-center rounded-lg">
+      <div className="w-full h-full bg-gray-200 flex items-center justify-center rounded-lg">
         <p className="text-gray-600">Loading map...</p>
       </div>
     );
@@ -103,7 +103,7 @@ export default function RouteMap({ locations, apiKey }) {
 
   if (loading) {
     return (
-      <div className="w-full h-[500px] bg-gray-200 flex items-center justify-center rounded-lg">
+      <div className="w-full h-full bg-gray-200 flex items-center justify-center rounded-lg">
         <p className="text-gray-600">Loading route...</p>
       </div>
     );
@@ -111,7 +111,7 @@ export default function RouteMap({ locations, apiKey }) {
 
   if (error) {
     return (
-      <div className="w-full h-[500px] bg-red-100 flex items-center justify-center rounded-lg">
+      <div className="w-full h-full bg-red-100 flex items-center justify-center rounded-lg">
         <p className="text-red-600">Error: {error}</p>
       </div>
     );
@@ -119,7 +119,7 @@ export default function RouteMap({ locations, apiKey }) {
 
   if (!routeData || !routeData.features || routeData.features.length === 0) {
     return (
-      <div className="w-full h-[500px] bg-yellow-100 flex items-center justify-center rounded-lg">
+      <div className="w-full h-full bg-yellow-100 flex items-center justify-center rounded-lg">
         <p className="text-yellow-800">No route data available</p>
       </div>
     );
@@ -153,7 +153,7 @@ export default function RouteMap({ locations, apiKey }) {
   const waypointIcon = createIcon('blue');
 
   return (
-    <div className="w-full h-[500px] rounded-lg overflow-hidden shadow-lg relative">
+    <div className="w-full h-full rounded-lg overflow-hidden shadow-lg relative">
       <MapContainer
         center={[avgLat, avgLng]}
         zoom={11}
@@ -231,18 +231,54 @@ export default function RouteMap({ locations, apiKey }) {
         })}
       </MapContainer>
       
+      {/* Plan Info Box - Bottom Left */}
+      {planNumber !== undefined && (
+        <div className="absolute bottom-4 left-4 bg-gray-900 rounded-lg shadow-lg p-3 z-[1000] border-2 border-purple-500">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="text-sm font-semibold text-white">
+              Plan {planNumber} of {totalPlans}
+            </div>
+          </div>
+          <div className="space-y-1 text-xs text-gray-300">
+            {goOutsCount !== undefined && (
+              <div className="text-purple-400">{goOutsCount} go-outs planned</div>
+            )}
+            <div className="flex items-center gap-3">
+              {budget !== undefined && (
+                <div className="flex items-center gap-1">
+                  <span>₹</span>
+                  <span className="font-semibold">{budget}</span>
+                </div>
+              )}
+              {totalDistance !== undefined && (
+                <div className="flex items-center gap-1">
+                  <span>📏</span>
+                  <span className="font-semibold">{totalDistance} km</span>
+                </div>
+              )}
+              {totalTime && (
+                <div className="flex items-center gap-1">
+                  <span>⏱️</span>
+                  <span className="font-semibold">{totalTime}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Distance and Time Summary Box - Bottom Right */}
-      <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg p-3 z-[1000] border-2 border-blue-500">
-        <div className="text-sm font-semibold text-gray-800 mb-1">Trip Summary</div>
+      <div className="absolute bottom-4 right-4 bg-gray-900 rounded-lg shadow-lg p-3 z-[1000] border-2 border-purple-500">
+        <div className="text-sm font-semibold text-white mb-1">Route Summary</div>
         <div className="flex items-center gap-2 text-xs">
           <div className="flex items-center gap-1">
-            <span className="text-blue-600">📏</span>
-            <span className="font-semibold">{distanceKm} km</span>
+            <span className="text-purple-400">📏</span>
+            <span className="font-semibold text-gray-200">{distanceKm} km</span>
           </div>
           <span className="text-gray-400">•</span>
           <div className="flex items-center gap-1">
-            <span className="text-blue-600">⏱️</span>
-            <span className="font-semibold">{durationMin} min</span>
+            <span className="text-purple-400">⏱️</span>
+            <span className="font-semibold text-gray-200">{durationMin} min</span>
           </div>
         </div>
       </div>

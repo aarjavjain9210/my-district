@@ -66,16 +66,22 @@ export default function ResultsPage() {
             totalCombinations: result.totalCombinations
           }));
           
-          alert(`✅ Successfully regenerated! Found ${result.totalCombinations} combinations, showing top ${result.itineraries.length}.`);
         }
+        return result;
       } else {
+        // Check for no new permutations
+        if (result.noNewPermutations) {
+          return result;
+        }
         // Show detailed error message
         const errorMsg = result.details || result.error || 'Failed to regenerate itinerary';
         alert(`❌ ${errorMsg}`);
+        return result;
       }
     } catch (error) {
       console.error('Error regenerating:', error);
       alert(`Network error: ${error.message}`);
+      return null;
     }
   };
 
@@ -106,26 +112,12 @@ export default function ResultsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-800 via-purple-600 to-white py-12 px-4">
       <div className="max-w-6xl mx-auto">
-        {/* Hero - Basic Information (styled similar to District image) */}
-        <div className="mb-8">
-          <div className="rounded-2xl overflow-hidden shadow-lg">
-            <div className="bg-gradient-to-br from-purple-600 to-purple-400 text-white p-12 md:p-16">
-              <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-4">Basic Information</h1>
-              <p className="text-lg md:text-xl text-purple-100 max-w-3xl">
-                Experience the best in Dining, Movies, and Events.
-              </p>
-            </div>
-          </div>
-        </div>
 
         {/* Header */}
         <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-white mb-2">
               Your {getDayOfWeek()} in the District
             </h1>
-            <p className="text-white">
-              Showing top {itineraries.length} out of {totalCombinations} possible itineraries
-            </p>
             <a
               href="/plan"
               className="mt-4 inline-block text-white hover:text-purple-200 font-medium"

@@ -9,6 +9,7 @@ import GoOutTypesStep from '@/app/components/plan/GoOutTypesStep';
 export default function PlanItinerary() {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState({
     // Mandatory fields
     startTime: '',
@@ -32,6 +33,7 @@ export default function PlanItinerary() {
   };
 
   const handleSubmit = async () => {
+    setIsGenerating(true);
     try {
       // Transform formData to API format
       const apiPayload = {
@@ -81,10 +83,12 @@ export default function PlanItinerary() {
         // Show detailed error message
         const errorMsg = result.details || result.error || 'Failed to generate itinerary';
         alert(`❌ ${errorMsg}`);
+        setIsGenerating(false);
       }
     } catch (error) {
       console.error('Error:', error);
       alert(`Network error: ${error.message}`);
+      setIsGenerating(false);
     }
   };
 
@@ -142,6 +146,7 @@ export default function PlanItinerary() {
               onBack={() => setStep(1)}
               onSubmit={handleSubmit}
               setFormData={setFormData}
+              isGenerating={isGenerating}
             />
           )}
         </div>
